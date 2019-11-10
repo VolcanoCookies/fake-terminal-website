@@ -1,0 +1,11 @@
+{
+	"commands": [
+		{
+			"value": [
+				"clear", "cls"
+			],
+			"help": "help sample text",
+			"exec": "clear"
+		}
+	]
+}

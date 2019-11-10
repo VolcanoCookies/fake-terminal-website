@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * Configs
  */
@@ -45,7 +43,7 @@ var configs = (function () {
         host: "example.com",
         user: "guest",
         is_root: false,
-        type_delay: 20
+        type_delay: 10
     };
     return {
         getInstance: function (options) {
@@ -117,14 +115,32 @@ var main = (function () {
     InvalidArgumentException.prototype = Object.create(Error.prototype);
     InvalidArgumentException.prototype.name = "InvalidArgumentException";
     InvalidArgumentException.prototype.constructor = InvalidArgumentException;
-
-    var cmds = {
+	
+	var cmds = [
+		{
+			alias: ["clear", "cls", "clearscreen"],
+			help: "Clears the screen.",
+			function: "clear"
+		},
+		{
+			alias: ["ls", "list"],
+			help: "List information about the files and folders (the current directory by default).",
+			function: "ls"
+		},
+		{
+			alias: ["help"],
+			help: "Insert help help here",
+			function: "help"
+		}
+	];
+	
+    /*var cmds = {
         LS: { value: "ls", help: configs.getInstance().ls_help },
         CAT: { value: "cat", help: configs.getInstance().cat_help },
         WHOAMI: { value: "whoami", help: configs.getInstance().whoami_help },
         DATE: { value: "date", help: configs.getInstance().date_help },
         HELP: { value: "help", help: configs.getInstance().help_help },
-        CLEAR: { value: "clear", help: configs.getInstance().clear_help },
+        CLEAR: { value: ["clear", "cls"], help: configs.getInstance().clear_help },
         REBOOT: { value: "reboot", help: configs.getInstance().reboot_help },
         CD: { value: "cd", help: configs.getInstance().cd_help },
         MV: { value: "mv", help: configs.getInstance().mv_help },
@@ -132,9 +148,9 @@ var main = (function () {
         RMDIR: { value: "rmdir", help: configs.getInstance().rmdir_help },
         TOUCH: { value: "touch", help: configs.getInstance().touch_help },
         SUDO: { value: "sudo", help: configs.getInstance().sudo_help }
-    };
+    };*/
 
-    var Terminal = function (prompt, cmdLine, output, sidenav, profilePic, user, host, root, outputTimer) {
+    var Terminal = function (prompt, cmdLine, output, user, host, root, outputTimer) {
         if (!(prompt instanceof Node) || prompt.nodeName.toUpperCase() !== "DIV") {
             throw new InvalidArgumentException("Invalid value " + prompt + " for argument 'prompt'.");
         }
@@ -144,20 +160,10 @@ var main = (function () {
         if (!(output instanceof Node) || output.nodeName.toUpperCase() !== "DIV") {
             throw new InvalidArgumentException("Invalid value " + output + " for argument 'output'.");
         }
-        if (!(sidenav instanceof Node) || sidenav.nodeName.toUpperCase() !== "DIV") {
-            throw new InvalidArgumentException("Invalid value " + sidenav + " for argument 'sidenav'.");
-        }
-        if (!(profilePic instanceof Node) || profilePic.nodeName.toUpperCase() !== "IMG") {
-            throw new InvalidArgumentException("Invalid value " + profilePic + " for argument 'profilePic'.");
-        }
-        (typeof user === "string" && typeof host === "string") && (this.completePrompt = user + "@" + host + ":~" + (root ? "#" : "$"));
-        this.profilePic = profilePic;
+		this.completePrompt = user + "@" + host + ":~" + (root ? "#" : "$");
         this.prompt = prompt;
         this.cmdLine = cmdLine;
         this.output = output;
-        this.sidenav = sidenav;
-        this.sidenavOpen = false;
-        this.sidenavElements = [];
         this.typeSimulator = new TypeSimulator(outputTimer, output);
     };
 
@@ -173,19 +179,8 @@ var main = (function () {
     };
 
     Terminal.prototype.init = function () {
-        this.sidenav.addEventListener("click", ignoreEvent);
         this.cmdLine.disabled = true;
-        this.sidenavElements.forEach(function (elem) {
-            elem.disabled = true;
-        });
-        this.prepareSideNav();
         this.lock(); // Need to lock here since the sidenav elements were just added
-        document.body.addEventListener("click", function (event) {
-            if (this.sidenavOpen) {
-                this.handleSidenav(event);
-            }
-            this.focus();
-        }.bind(this));
         this.cmdLine.addEventListener("keydown", function (event) {
             if (event.which === 13 || event.keyCode === 13) {
                 this.handleCmd();
@@ -208,61 +203,16 @@ var main = (function () {
         element.style.transform = "translateX(0)";
     };
 
-    Terminal.prototype.prepareSideNav = function () {
-        var capFirst = (function () {
-            return function (string) {
-                return string.charAt(0).toUpperCase() + string.slice(1);
-            }
-        })();
-        for (var file in files.getInstance()) {
-            var element = document.createElement("button");
-            Terminal.makeElementDisappear(element);
-            element.onclick = function (file, event) {
-                this.handleSidenav(event);
-                this.cmdLine.value = "cat " + file + " ";
-                this.handleCmd();
-            }.bind(this, file);
-            element.appendChild(document.createTextNode(capFirst(file.replace(/\.[^/.]+$/, "").replace(/_/g, " "))));
-            this.sidenav.appendChild(element);
-            this.sidenavElements.push(element);
-        }
-        // Shouldn't use document.getElementById but Terminal is already using loads of params
-        document.getElementById("sidenavBtn").addEventListener("click", this.handleSidenav.bind(this));
-    };
-
-    Terminal.prototype.handleSidenav = function (event) {
-        if (this.sidenavOpen) {
-            this.profilePic.style.opacity = 0;
-            this.sidenavElements.forEach(Terminal.makeElementDisappear);
-            this.sidenav.style.width = "50px";
-            document.getElementById("sidenavBtn").innerHTML = "&#9776;";
-            this.sidenavOpen = false;
-        } else {
-            this.sidenav.style.width = "300px";
-            this.sidenavElements.forEach(Terminal.makeElementAppear);
-            document.getElementById("sidenavBtn").innerHTML = "&times;";
-            this.profilePic.style.opacity = 1;
-            this.sidenavOpen = true;
-        }
-        document.getElementById("sidenavBtn").blur();
-        ignoreEvent(event);
-    };
-
     Terminal.prototype.lock = function () {
         this.exec();
         this.cmdLine.blur();
         this.cmdLine.disabled = true;
-        this.sidenavElements.forEach(function (elem) {
-            elem.disabled = true;
-        });
     };
 
     Terminal.prototype.unlock = function () {
+		this.cmdLine = document.getElementById("cmdline");
         this.cmdLine.disabled = false;
         this.prompt.textContent = this.completePrompt;
-        this.sidenavElements.forEach(function (elem) {
-            elem.disabled = false;
-        });
         scrollToBottom();
         this.focus();
     };
@@ -309,44 +259,62 @@ var main = (function () {
     Terminal.prototype.handleCmd = function () {
         var cmdComponents = this.cmdLine.value.trim().split(" ");
         this.lock();
-        switch (cmdComponents[0]) {
-            case cmds.CAT.value:
-                this.cat(cmdComponents);
+		cmds.forEach(command => {
+			if(Array.isArray(command.alias)) {
+				command.alias.forEach(al => {
+					if(al == cmdComponents[0]) {
+						Terminal.prototype.runCmd(command.function, cmdComponents);
+						console.log('Ran command ' + command.function);
+					}
+				});
+			} else {
+				if(command.alias == cmdComponents[0]) {
+					Terminal.prototype.runCmd(command.function, cmdComponents);
+					console.log('Ran command ' + command.function);
+				}
+			}
+		});
+    }
+			
+	Terminal.prototype.runCmd = function(cmd, args) {
+	switch (cmd) {
+            case "cat":
+                this.cat(args);
                 break;
-            case cmds.LS.value:
+            case "ls":
                 this.ls();
                 break;
-            case cmds.WHOAMI.value:
+            case "whoami":
                 this.whoami();
                 break;
-            case cmds.DATE.value:
+            case "date":
                 this.date();
                 break;
-            case cmds.HELP.value:
+            case "help":
                 this.help();
                 break;
-            case cmds.CLEAR.value:
+            case "clear":
                 this.clear();
                 break;
-            case cmds.REBOOT.value:
+            case "reboot":
                 this.reboot();
                 break;
-            case cmds.CD.value:
-            case cmds.MV.value:
-            case cmds.RMDIR.value:
-            case cmds.RM.value:
-            case cmds.TOUCH.value:
-                this.permissionDenied(cmdComponents);
+            case "cd":
+            case "mv":
+            case "rmdir":
+            case "rm":
+            case "touch":
+                this.permissionDenied(args);
                 break;
-            case cmds.SUDO.value:
+            case "sudo":
                 this.sudo();
                 break;
             default:
-                this.invalidCommand(cmdComponents);
+                this.invalidCommand(args);
                 break;
-        };
-    };
-
+	}
+}
+			
     Terminal.prototype.cat = function (cmdComponents) {
         var result;
         if (cmdComponents.length <= 1) {
@@ -389,6 +357,8 @@ var main = (function () {
     };
 
     Terminal.prototype.clear = function () {
+		this.output = document.getElementById("output");
+		this.prompt = document.getElementById("prompt");
         this.output.textContent = "";
         this.prompt.textContent = "";
         this.prompt.textContent = this.completePrompt;
@@ -431,6 +401,7 @@ var main = (function () {
         }
         this.timer = timer;
         this.output = output;
+		debugger;
     };
 
     TypeSimulator.prototype.type = function (text, callback) {
@@ -473,8 +444,6 @@ var main = (function () {
                 document.getElementById("prompt"),
                 document.getElementById("cmdline"),
                 document.getElementById("output"),
-                document.getElementById("sidenav"),
-                document.getElementById("profilePic"),
                 configs.getInstance().user,
                 configs.getInstance().host,
                 configs.getInstance().is_root,
