@@ -6,14 +6,6 @@ A fully customizable terminal-like-website
 
 You can preview a live demo [here](https://luisbraganca.github.io/fake-terminal-website/) with a raw FTW template or [my personal website](http://lbraganca.pt) that also uses this template.
 
-### Desktop
-
-![Screenshot of the application running on a desktop device](https://raw.githubusercontent.com/luisbraganca/fake-terminal-website/master/screenshots/desktop.png)
-
-### Mobile
-
-![Screenshot of the application running on a mobile device](https://raw.githubusercontent.com/luisbraganca/fake-terminal-website/master/screenshots/mobile.png)
-
 ## Technical details
 
 This *tool* allows you to build your own website that looks like a terminal/console. To make this possible, it was implemented in a dynamic way. All you have to do is to configure a few things here and there and you have your own version.
@@ -28,23 +20,9 @@ This *tool* allows you to build your own website that looks like a terminal/cons
 * Sidenav with all the files to make it easy for people with no know-how to navigate through your website
 * Since the website is generic enough, you're able to create a language-checker function and associate different texts according to the user's browser language (my website version has support for both portuguese and english languages).
 
-### Future (TODO) functionalities
-
-* History navigation using Up and Down arrows
-* Ask for a password when using `sudo` command
-* `email` or similar command that allows the visitor to send an email directly to the website owner
-
-### Limitations
-
-* No support for internet explorer, showing the message `NOTE: I see you're using internet explorer, this website won't work properly`.
-
 ## Getting started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
-### Prerequisites
-
-This template was built using [Visual Studio Code](https://code.visualstudio.com/) but since it's a static webpage, you can even use the pre-installed windows notepad.
 
 ### Configuring the website
 
@@ -56,16 +34,6 @@ Before you deploy the website, consider changing the following:
 * The page title on the `index.html` file.
 * The website color on the `css/main.css` file.
 * The images located at the `img` folder. The suggested sizes are 150x150 px for the avatar and `32x32`/`16x16` px for the favicon.
-
-### Resources
-
-* Favicon
-Favicon from:
-https://pixabay.com/pt/avatar-menino-desenhos-animados-2027366/
-
-* Github Ribbon
-GitHub ribbon from:
-https://blog.github.com/2008-12-19-github-ribbons/
 
 ## Notes
 
