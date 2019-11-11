@@ -1,6 +1,9 @@
 /**
  * Configs
  */
+
+var self;
+
 var configs = (function () {
     var instance;
     var Singleton = function (options) {
@@ -43,7 +46,7 @@ var configs = (function () {
         host: "example.com",
         user: "guest",
         is_root: false,
-        type_delay: 10
+        type_delay: 20
     };
     return {
         getInstance: function (options) {
@@ -129,8 +132,53 @@ var main = (function () {
 		},
 		{
 			alias: ["help"],
-			help: "Insert help help here",
-			function: "help"
+			help: "Print this menu.",
+			function: "HELP"
+		},
+		{
+			alias: ["cat"],
+			help: "Read FILE(s) content and print it to the standard output (screen).",
+			function: "CAT"
+		},
+		{
+			alias: ["date"],
+			help: "Print the system date and time.",
+			function: "DATE"
+		},
+		{
+			alias: ["reboot"],
+			help: "Reboot the system.",
+			function: "REBOOT"
+		},
+		{
+			alias: ["cd"],
+			help: "Change the current working directory.",
+			function: "CD"
+		},
+		{
+			alias: ["mv"],
+			help: "Move (rename) files.",
+			function: "MV"
+		},
+		{
+			alias: ["rm"],
+			help: "Remove files or directories.",
+			function: "RM"
+		},
+		{
+			alias: ["rmdir"],
+			help: "Remove directory, this command will only work if the folders are empty.",
+			function: "RMDIR"
+		},
+		{
+			alias: ["touch", "tch"],
+			help: "Change file timestamps. If the file doesn't exist, it's created an empty one.",
+			function: "TOUCH"
+		},
+		{
+			alias: ["sudo"],
+			help: "Execute a command as the superuser.",
+			function: "SUDO"
 		}
 	];
 	
@@ -165,10 +213,41 @@ var main = (function () {
         this.cmdLine = cmdLine;
         this.output = output;
         this.typeSimulator = new TypeSimulator(outputTimer, output);
+		self = this;
     };
 
     Terminal.prototype.type = function (text, callback) {
-        this.typeSimulator.type(text, callback);
+        if (isURL(text)) {
+            window.open(text);
+        }
+        var i = 0;
+        var output = document.getElementById("output");
+        var timer = this.timer;
+        var skipped = false;
+        var skip = function () {
+            skipped = true;
+        }.bind(this);
+        document.addEventListener("dblclick", skip);
+        (function typer() {
+            if (i < text.length) {
+                var char = text.charAt(i);
+                var isNewLine = char === "\n";
+                output.innerHTML += isNewLine ? "<br/>" : char;
+                i++;
+                if (!skipped) {
+                    setTimeout(typer, isNewLine ? timer * 2 : timer);
+                } else {
+                    output.innerHTML += (text.substring(i).replace(new RegExp("\n", 'g'), "<br/>")) + "<br/>";
+                    document.removeEventListener("dblclick", skip);
+                    callback();
+                }
+            } else if (callback) {
+                output.innerHTML += "<br/>";
+                document.removeEventListener("dblclick", skip);
+                callback();
+            }
+            scrollToBottom();
+        })();
     };
 
     Terminal.prototype.exec = function () {
@@ -186,21 +265,11 @@ var main = (function () {
                 this.handleCmd();
                 ignoreEvent(event);
             } else if (event.which === 9 || event.keyCode === 9) {
-                this.handleFill();
+                //this.handleFill();
                 ignoreEvent(event);
             }
         }.bind(this));
         this.reset();
-    };
-
-    Terminal.makeElementDisappear = function (element) {
-        element.style.opacity = 0;
-        element.style.transform = "translateX(-300px)";
-    };
-
-    Terminal.makeElementAppear = function (element) {
-        element.style.opacity = 1;
-        element.style.transform = "translateX(0)";
     };
 
     Terminal.prototype.lock = function () {
@@ -210,9 +279,8 @@ var main = (function () {
     };
 
     Terminal.prototype.unlock = function () {
-		this.cmdLine = document.getElementById("cmdline");
-        this.cmdLine.disabled = false;
-        this.prompt.textContent = this.completePrompt;
+        self.cmdLine.disabled = false;
+        self.prompt.textContent = self.completePrompt;
         scrollToBottom();
         this.focus();
     };
@@ -263,17 +331,18 @@ var main = (function () {
 			if(Array.isArray(command.alias)) {
 				command.alias.forEach(al => {
 					if(al == cmdComponents[0]) {
-						Terminal.prototype.runCmd(command.function, cmdComponents);
-						console.log('Ran command ' + command.function);
+						self.runCmd(command.function, cmdComponents);
 					}
 				});
 			} else {
 				if(command.alias == cmdComponents[0]) {
-					Terminal.prototype.runCmd(command.function, cmdComponents);
-					console.log('Ran command ' + command.function);
+					self.runCmd(command.function, cmdComponents);
 				}
 			}
 		});
+		if(cmdComponents[0] == "") {
+			this.invalidCommand(" ");
+		}
     }
 			
 	Terminal.prototype.runCmd = function(cmd, args) {
@@ -360,7 +429,6 @@ var main = (function () {
 		this.output = document.getElementById("output");
 		this.prompt = document.getElementById("prompt");
         this.output.textContent = "";
-        this.prompt.textContent = "";
         this.prompt.textContent = this.completePrompt;
         this.unlock();
     };
@@ -388,7 +456,7 @@ var main = (function () {
     };
 
     Terminal.prototype.focus = function () {
-        this.cmdLine.focus();
+        self.cmdLine.focus();
     };
 
     var TypeSimulator = function (timer, output) {
@@ -401,7 +469,6 @@ var main = (function () {
         }
         this.timer = timer;
         this.output = output;
-		debugger;
     };
 
     TypeSimulator.prototype.type = function (text, callback) {
