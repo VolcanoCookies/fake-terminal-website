@@ -45,6 +45,7 @@ var configs = (function () {
         value_token: "<value>",
         host: "example.com",
         user: "guest",
+        login_successfull: "Successfully logged in as '<value>'",
         is_root: false,
         type_delay: 20
     };
@@ -123,17 +124,22 @@ var main = (function () {
 		{
 			alias: ["clear", "cls", "clearscreen"],
 			help: "Clears the screen.",
-			function: "clear"
+			function: "CLEAR"
 		},
 		{
 			alias: ["ls", "list"],
 			help: "List information about the files and folders (the current directory by default).",
-			function: "ls"
+			function: "LS"
 		},
 		{
 			alias: ["help"],
-			help: "Print this menu.",
+            help: "Print this menu.",
 			function: "HELP"
+        },
+		{
+			alias: ["whoami", "who"],
+            help: "Print the user name associated with the current effective user ID and more info.",
+			function: "WHOAMI"
 		},
 		{
 			alias: ["cat"],
@@ -179,6 +185,11 @@ var main = (function () {
 			alias: ["sudo"],
 			help: "Execute a command as the superuser.",
 			function: "SUDO"
+		},
+		{
+			alias: ["login"],
+			help: "Login.",
+			function: "LOGIN"
 		}
 	];
 	
@@ -215,6 +226,11 @@ var main = (function () {
         this.typeSimulator = new TypeSimulator(outputTimer, output);
 		self = this;
     };
+
+    Terminal.prototype.setCredentials = function (user, host) {
+        this.completePrompt = user + "@" + host + ":~" + (this.root ? "#" : "$");
+        console.log(this.completePrompt);
+    }
 
     Terminal.prototype.type = function (text, callback) {
         if (isURL(text)) {
@@ -326,57 +342,70 @@ var main = (function () {
 
     Terminal.prototype.handleCmd = function () {
         var cmdComponents = this.cmdLine.value.trim().split(" ");
+        var acceptedCommand = false;
         this.lock();
 		cmds.forEach(command => {
 			if(Array.isArray(command.alias)) {
 				command.alias.forEach(al => {
-					if(al == cmdComponents[0]) {
-						self.runCmd(command.function, cmdComponents);
+					if(al.toLowerCase() == cmdComponents[0].toLowerCase()) {
+                        acceptedCommand = true;
+                        self.runCmd(command.function, cmdComponents);
 					}
 				});
-			} else {
+            } else {
+                this.invalidCommand(" ");
+            }
+            /*
+            Always use Arrays for command alias, even if only one alias
+            
+            else {
 				if(command.alias == cmdComponents[0]) {
 					self.runCmd(command.function, cmdComponents);
 				}
-			}
+            }*/
 		});
 		if(cmdComponents[0] == "") {
 			this.invalidCommand(" ");
-		}
+		} else if (!acceptedCommand) {
+            this.invalidCommand(cmdComponents);
+        }
     }
 			
 	Terminal.prototype.runCmd = function(cmd, args) {
 	switch (cmd) {
-            case "cat":
+            case "CAT":
                 this.cat(args);
                 break;
-            case "ls":
+            case "LS":
                 this.ls();
                 break;
-            case "whoami":
+            case "WHOAMI":
                 this.whoami();
                 break;
-            case "date":
+            case "DATE":
                 this.date();
                 break;
-            case "help":
+            case "HELP":
                 this.help();
                 break;
-            case "clear":
+            case "CLEAR":
                 this.clear();
                 break;
-            case "reboot":
+            case "REBOOT":
                 this.reboot();
                 break;
-            case "cd":
-            case "mv":
-            case "rmdir":
-            case "rm":
-            case "touch":
+            case "CD":
+            case "MV":
+            case "RMDIR":
+            case "RM":
+            case "TOUCH":
                 this.permissionDenied(args);
                 break;
-            case "sudo":
+            case "SUDO":
                 this.sudo();
+                break;
+            case "LOGIN":
+                this.login(args);
                 break;
             default:
                 this.invalidCommand(args);
@@ -420,7 +449,7 @@ var main = (function () {
     Terminal.prototype.help = function () {
         var result = configs.getInstance().general_help + "\n\n";
         for (var cmd in cmds) {
-            result += cmds[cmd].value + " - " + cmds[cmd].help + "\n";
+            result += cmds[cmd].alias[0] + " - " + cmds[cmd].help + "\n";
         }
         this.type(result.trim(), this.unlock.bind(this));
     };
@@ -435,6 +464,13 @@ var main = (function () {
 
     Terminal.prototype.reboot = function () {
         this.type(configs.getInstance().reboot_message, this.reset.bind(this));
+    };
+
+    Terminal.prototype.login = function (args) {
+        configs.getInstance().user = args[1];
+        configs.getInstance().host = Math.floor(Math.random() * 255 + 1) + "." + Math.floor(Math.random() * 255 + 1) + "." + Math.floor(Math.random() * 255 + 1) + "." + Math.floor(Math.random() * 255 + 1);
+        this.type(configs.getInstance().login_successfull.replace(configs.getInstance().value_token, configs.getInstance().user), this.unlock.bind(this));
+        this.setCredentials(configs.getInstance().user, configs.getInstance().host);
     };
 
     Terminal.prototype.reset = function () {
